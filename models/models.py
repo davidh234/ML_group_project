@@ -12,8 +12,8 @@ from sklearn.neighbors._dist_metrics import DistanceMetric
 
 df = pandas.read_csv("group_project_knn.csv", header=None, comment='#')
 
-X1 = df.iloc[:, 0] # lat
-X2 = df.iloc[:, 1] # long
+X1 = df.iloc[:, 0]  # lat
+X2 = df.iloc[:, 1]  # long
 X3 = df.iloc[:, 2]
 X4 = df.iloc[:, 3]
 X5 = df.iloc[:, 4]
@@ -25,9 +25,10 @@ X10 = df.iloc[:, 9]
 X11 = df.iloc[:, 10]
 y = df.iloc[:, 11]
 X = np.column_stack((X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11))
-# latlong = np.column_stack((X1,X2))
+latlong = np.column_stack((X1, X2))
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# latlong_train, latlong_test = train_test_split(latlong, test_size=0.1)
 
 # C = 1
 # model = Lasso(alpha=(1 / (2 * C)))
@@ -116,28 +117,31 @@ current_gamma = 0
 
 def haversine_dist(dists):
     haversine = DistanceMetric.get_metric('haversine')
-    distances = haversine.pairwise(latlong)
+    distances = haversine.pairwise(latlong_train)
     # weights = np.exp(-current_gamma * (distances ** 2))
     return distances
 
+
 def gaussian_kernel(distances):
+    # print(distances)
     weights = np.exp(-current_gamma * (distances ** 2))
     return weights / np.sum(weights)
 
 
-def knn_model(num_neighbours, gamma):
+def knn_model(num_neighbours_list, gamma_list):
+    for num_neighbours in num_neighbours_list:
+        for gamma in gamma_list:
+            global current_gamma
+            current_gamma = gamma
 
-    global current_gamma
-    current_gamma = gamma
-    # dists = haversine_dist()
-    # X_train, X_test, y_train, y_test
-    model = KNeighborsRegressor(n_neighbors=num_neighbours, weights='distance', metric="haversine").fit(X_train, y_train)
-    ypreds = model.predict(X_test)
-    mse = mean_squared_error(y_test, ypreds)
-    print(mse)
+            model = KNeighborsRegressor(n_neighbors=num_neighbours, weights=gaussian_kernel).fit(X_train, y_train)
+            ypreds = model.predict(X_test)
+            mse = mean_squared_error(y_test, ypreds)
+            print("nn: ", num_neighbours, ", gamma: ", gamma, ", mse:", mse)
+
 
 # haversine_dist()
-knn_model(10, 1)
+knn_model([1, 2, 5, 10, 25, 50, 100, 500], [1, 2, 5, 10, 25, 50, 100])
 
 # lasso_calculate_prediction_error(X, y, [0.1, 1, 10, 25, 50])
 #
